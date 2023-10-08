@@ -32,3 +32,10 @@
 Дополнительные материалы от преподавателя по поводу работы на ARM процессорах:
 
 - https://github.com/Pivnoy/os-dev-env
+
+Примеры выполнения работ у других студентов
+
+- https://github.com/Hyperb0rean/itmo_os (+rust?)
+- https://github.com/orgs/vityaman-edu/... (![](http.cat/501))
+- https://github.com/NorthCapDiamond/Operating-Systems-xv6
+
