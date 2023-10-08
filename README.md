@@ -8,8 +8,8 @@
 Лабораторные работы основываются на модификации исходного кода ОС xv6, поэтому
 репозиторий был форкнут и версии каждой ЛР будут помещаться в отдельные ветки:
 
-- (см. [branches/main](https://github.com/e1turin/itmo-os-xv6-riscv))
-
+- [lab-1](https://github.com/e1turin/itmo-os-xv6-riscv/tree/lab-1) (ping-pong: pipe, fork)
+- ...
 
 
 # Комментарии от разработчиков
