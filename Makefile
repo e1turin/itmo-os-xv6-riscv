@@ -132,7 +132,11 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
+	# custom
 	$U/_pingpong\
+	$U/_test\
+	$U/_dumptests\
+	$U/_dump2tests\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
@@ -172,3 +176,13 @@ qemu-gdb: $K/kernel .gdbinit fs.img
 	@echo "*** Now run 'gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 
+# custom
+$U/_dumptests: $U/dumptests.c $U/dumptests.S $(ULIB)
+	$(CC) $(CFLAGS) -c -o $U/dumptests.S.o $U/dumptests.S
+	$(CC) $(CFLAGS) -c -o $U/dumptests.c.o $U/dumptests.c
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_dumptests $U/dumptests.c.o $U/dumptests.S.o $(ULIB)
+
+$U/_dump2tests: $U/dump2tests.c $U/dump2tests.S $(ULIB)
+	$(CC) $(CFLAGS) -c -o $U/dump2tests.S.o $U/dump2tests.S
+	$(CC) $(CFLAGS) -c -o $U/dump2tests.c.o $U/dump2tests.c
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_dump2tests $U/dump2tests.c.o $U/dump2tests.S.o $(ULIB)
