@@ -132,7 +132,6 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
-	# custom
 	$U/_pingpong\
 	$U/_test\
 	$U/_dumptests\
