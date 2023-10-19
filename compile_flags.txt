@@ -1,1 +1,2 @@
 -I .
+-ferror-limit=0
