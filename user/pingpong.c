@@ -4,7 +4,9 @@
 static char *msg_ping = "ping";
 static char *msg_pong = "pong";
 
-void parent_stuff(int pipe[]) {
+void 
+parent_stuff(int pipe[]) 
+{
   char msg_buff[5];
 
   int w = write(pipe[1], msg_ping, 5);
@@ -16,7 +18,9 @@ void parent_stuff(int pipe[]) {
   printf("(parent) %d: got %s\n", getpid(), msg_buff);
 }
 
-void child_stuff(int pipe[]) {
+void 
+child_stuff(int pipe[]) 
+{
   char msg_buff[5];
 
   int r = read(pipe[0], msg_buff, 5);
@@ -28,7 +32,9 @@ void child_stuff(int pipe[]) {
   if (w != 5) printf("error while write (have written %d)\n", w);
 }
 
-int main(int argc, char *argv[]) {
+int 
+main(int argc, char *argv[]) 
+{
   int p[2];
   pipe(p);
 
