@@ -686,9 +686,71 @@ void
 dump(void)
 {
   struct proc *p = myproc();
+  if(!p){
+    printf("error while processing current proc\n");
+    return;
+  }
+
   int reg_idx = 2;
   for(uint64 *i = &(p->trapframe->s2); i <= &(p->trapframe->s11); ++i){
-	printf("reg s%d = %d\n", reg_idx, *(uint32*)i);
-	++reg_idx;
+    printf("reg s%d = %d\n", reg_idx, *(uint32 *)i);
+    ++reg_idx;
   }
+}
+
+// Returns via pointer value of specified register(s2..s11) of specified
+// process. Only the current process and its parents can view its registers.
+// Returns status codes: 
+//   0 if success,
+//  -1 if process doesn't have access to process with given `pid`,
+//  -2 if given `pid` is incorrect,
+//  -3 if given `register_num` is not available,
+//  -4 if can not write via given `return_value` pointer.
+
+int
+dump2(int pid, int register_num, uint64 *return_value) 
+{
+  enum status_codes {
+    OK                = 0,
+    NOT_ENOUGH_RIGHTS = -1,
+    INVALID_PID       = -2,
+    INVALID_REG_NUM   = -3,
+    CAN_NOT_RETURN    = -4
+  };
+  if (!(1 <= register_num && register_num <= 11)) 
+    return INVALID_REG_NUM;
+
+  struct proc *curr_p = myproc();
+  if(!curr_p) return NOT_ENOUGH_RIGHTS;
+
+  struct proc *target_p;
+
+  for(target_p = proc; target_p < &proc[NPROC]; ++target_p) {
+    //XXX: mb wait_lock must be acquired
+    acquire(&target_p->lock);
+    if (target_p->pid == pid) goto found;
+    release(&target_p->lock);
+  }
+  return INVALID_PID;
+
+found:
+
+  // for security purposes, only the current 
+  // process and its parents can view its registers.
+  acquire(&wait_lock);
+  if (curr_p->pid != target_p->pid && curr_p->pid != target_p->parent->pid) {
+    release(&wait_lock);
+    release(&target_p->lock);
+    return NOT_ENOUGH_RIGHTS;
+  }
+  
+  uint64 *reg = &target_p->trapframe->s2 + (register_num - 2);
+
+  int status = copyout(curr_p->pagetable, (uint64)return_value, (char *)reg, sizeof(uint64));
+  release(&wait_lock);
+  release(&target_p->lock);
+
+  if (status == -1) return CAN_NOT_RETURN;
+
+  return OK;
 }

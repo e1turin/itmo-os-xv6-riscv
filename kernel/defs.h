@@ -108,6 +108,7 @@ int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
 //custom
 void            dump(void);
+int             dump2(int pid, int register_num, uint64 *return_value);
 
 // swtch.S
 void            swtch(struct context*, struct context*);

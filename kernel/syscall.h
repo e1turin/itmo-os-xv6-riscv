@@ -22,3 +22,4 @@
 #define SYS_close  21
 //custom
 #define SYS_dump   22
+#define SYS_dump2  23

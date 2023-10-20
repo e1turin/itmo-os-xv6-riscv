@@ -36,4 +36,6 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
+# custom
 entry("dump");
+entry("dump2");
