@@ -33,8 +33,13 @@
 
 По факту, можно подправить все пути `sed`ом и тогда clangd сможет разрешать зависимости, но придется подправлять пути для каждого изменения процесса компиляции: добавил файлик — обнови базу. 
 
+Для удобства можно пользоваться коммандой ($WINXV6 — путь до каталога с сорцами xv6 на Windows):
 ```bash
-make clean && bear -- make && bear --append -- make qemu && (export WINXV6=D:/Projects/playground/xv6; cat compile_commands.json | sed "s|/home/xv6|$WINXV6|g" > compile_commands-fix.json && mv compile_commands-fix.json compile_commands.json)
+make clean &&
+bear --output tmp-compdb.json -- make &&
+bear --output tmp-compdb.json --append -- make qemu &&
+(export WINXV6=D:/Projects/itmo-os-xv6-riscv;
+ cat tmp-cc.json | sed "s|/home/xv6|$WINXV6|g" > compile_commands.json)
 ```
 
 Или можно добавить флаги компиляции для clangd (в [Makefile](./Makefile) для компиляции используются текущая директория `./`). Поэтому достаточно добавить файлик
