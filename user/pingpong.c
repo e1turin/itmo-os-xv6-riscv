@@ -41,16 +41,16 @@ main(int argc, char *argv[])
   int pid = fork();
 
   if (pid == 0) {
-	parent_stuff(p);
+    parent_stuff(p);
   } else if (pid > 0) {
-	child_stuff(p);
-	wait((int *)0);
+    child_stuff(p);
+    wait((int *)0);
   } else {
-	printf("fork failed");
+    printf("fork failed");
 
-	close(p[0]);
-	close(p[1]);
-	exit(-1);
+    close(p[0]);
+    close(p[1]);
+    exit(-1);
   }
 
   close(p[0]);
