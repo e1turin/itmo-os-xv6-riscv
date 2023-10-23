@@ -134,5 +134,11 @@ TODO:
 
 - [Лекторий ФПМИ Concurrency 8. Lock-free](https://youtu.be/Hs5ZJdg35G4)
 - [Серия статей про Lock-free структуры данных в libcds](https://habr.com/ru/users/khizmax/publications/articles/)
+  - CAS, helping, while-loops...
+  - ABA-проблема — проблема использования указателей как идентификаторов
+    - tagged pointers
+  - hazard-pointer — то, что опасно удалять
+    - dynamic HP — реализация libcds
+  - Pass The Buck — глобальный менеджер указателей, подобие сборщика мусора
 
 
