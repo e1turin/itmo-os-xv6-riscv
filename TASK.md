@@ -141,4 +141,4 @@ TODO:
     - dynamic HP — реализация libcds
   - Pass The Buck — глобальный менеджер указателей, подобие сборщика мусора
 
-
+- https://github.com/rigtorp/awesome-lockfree
