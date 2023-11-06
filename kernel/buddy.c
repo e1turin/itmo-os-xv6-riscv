@@ -58,7 +58,8 @@ void bit_clear(char *array, int index) {
   array[index / 8] = (b & ~m);
 }
 
-/* custom */
+// Invert bit at position index in array which stands for xor'ed bits of pair
+// blocks at (2 * index) and (2 * index + 1) positions
 void bit_invert(char *array, int index) {
   int b_idx = index / 2; // Every bit is xor'ed with the next one thus flag in
                          // the array has a bit index two times smaller
@@ -176,7 +177,7 @@ void bd_free(void *p) {
     int bi = blk_index(k, p);
     int buddy = (bi % 2 == 0) ? bi + 1 : bi - 1;
     bit_invert(bd_sizes[k].alloc, bi);             // free p at size k
-    if (bit_isset(bd_sizes[k].alloc, buddy / 2)) { // is buddy allocated?
+    if (bit_isset(bd_sizes[k].alloc, buddy / 2)) { // Is buddy allocated?
       break;                                       // break out of loop
     }
     // budy is free; merge with buddy
@@ -234,10 +235,10 @@ void bd_mark(void *start, void *stop) {
 int bd_initfree_pair(int k, int bi, bool use_bd) {
   int buddy = (bi % 2 == 0) ? bi + 1 : bi - 1;
   int free = 0;
-  if (bit_isset(bd_sizes[k].alloc, bi / 2)) { //) != bit_isset(bd_sizes[k].alloc, buddy)) {
+  if (bit_isset(bd_sizes[k].alloc, bi / 2)) {
     // one of the pair is free
     free = BLK_SIZE(k);
-    if (use_bd) //(bit_isset(bd_sizes[k].alloc, bi))
+    if (use_bd)
       lst_push(&bd_sizes[k].free, addr(k, buddy));  // put buddy on free list
     else
       lst_push(&bd_sizes[k].free, addr(k, bi));  // put bi on free list
@@ -307,7 +308,7 @@ void bd_init(void *base, void *end) {
   for (int k = 0; k < nsizes; k++) {
     lst_init(&bd_sizes[k].free);
     // needs 2 times less blocks as bits are xor'ed in .alloc array
-    sz = sizeof(char) * ROUNDUP(NBLK(k) / 2, 8) / 8; 
+    sz = sizeof(char) * ROUNDUP(NBLK(k) / 2, 8) / 8;
     bd_sizes[k].alloc = p;
     memset(bd_sizes[k].alloc, 0, sz);
     p += sz;
