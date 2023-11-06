@@ -190,10 +190,7 @@ void            virtio_disk_intr(void);
 
 /* custom */
 // list.c
-struct list {
-  struct list *next;
-  struct list *prev;
-};
+struct list;
 void            lst_init(struct list*);
 void            lst_remove(struct list*);
 void            lst_push(struct list*, void *);

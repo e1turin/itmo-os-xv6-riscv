@@ -3,6 +3,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "riscv.h"
+#include "list.h"
 #include "defs.h"
 #include <stdbool.h>
 
