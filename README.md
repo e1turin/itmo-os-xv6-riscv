@@ -23,6 +23,9 @@
 Для того чтобы попробовать xv6 без особой возни можно использовать Docker-образ:
 
 - https://hub.docker.com/r/wtakuo/xv6-env
+    - `gdb` → `gdb-multiarch` — потому что стандартная не умеет в `riscv:rv64`
+    - https://qemu-project.gitlab.io/qemu/system/gdb.html
+        - можно настроить подключение gdb в vscode
 - можно так же настроить сборку в Docker из Clion или по крайней мере запускать образ
 - https://mrzleo.github.io/2021/08/19/Virtualization-Start-from-QEMU/ — запуск xv6 на 
 разных платформах
@@ -38,7 +41,8 @@
 
 Примеры выполнения работ у других студентов
 
-- https://github.com/Hyperb0rean/itmo_os (+rust?)
-- https://github.com/orgs/vityaman-edu/ ... (http.cat/501)
+- https://github.com/Hyperb0rean/itmo_os (+rust)
+- https://github.com/vityaman-edu/os-xv6-riscv
 - https://github.com/NorthCapDiamond/Operating-Systems-xv6
+- https://github.com/Malevrovich/ITMO-OS-xv6-riscv
 
