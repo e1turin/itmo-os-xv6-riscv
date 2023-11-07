@@ -93,7 +93,7 @@ void bd_print() {
     printf("size %d (blksz %d nblk %d): free list: ", k, BLK_SIZE(k), NBLK(k));
     lst_print(&bd_sizes[k].free);
     printf("  alloc:");
-    bd_print_vector(bd_sizes[k].alloc, NBLK(k));
+    bd_print_vector(bd_sizes[k].alloc, NBLK(k) / 2);
     if (k > 0) {
       printf("  split:");
       bd_print_vector(bd_sizes[k].split, NBLK(k));
@@ -176,16 +176,16 @@ void bd_free(void *p) {
   acquire(&lock);
   for (k = size(p); k < MAXSIZE; k++) {
     int bi = blk_index(k, p);
-    int buddy = (bi % 2 == 0) ? bi + 1 : bi - 1;
-    bit_invert(bd_sizes[k].alloc, bi);             // free p at size k
+    int buddy = (bi % 2 == 0) ? bi + 1 : bi - 1; // Is buddy a right or left half?
+    bit_invert(bd_sizes[k].alloc, bi);           // Free p at size k
     if (bit_isset(bd_sizes[k].alloc, buddy / 2)) { // Is buddy allocated?
       break;                                       // break out of loop
     }
-    // budy is free; merge with buddy
+    // buddy is free; merge with buddy
     q = addr(k, buddy);
     lst_remove(q);  // remove buddy from free list
-    if (buddy % 2 == 0) {
-      p = q;
+    if (buddy % 2 == 0) { // If buddy is a left half then
+      p = q;              // new bigger block starts from q
     }
     // at size k+1, mark that the merged buddy pair isn't split
     // anymore
@@ -234,7 +234,7 @@ void bd_mark(void *start, void *stop) {
 // If a block is marked as allocated and the buddy is free, put the
 // buddy on the free list at size k.
 int bd_initfree_pair(int k, int bi, bool use_bd) {
-  int buddy = (bi % 2 == 0) ? bi + 1 : bi - 1;
+  int buddy = (bi % 2 == 0) ? bi + 1 : bi - 1; // Is buddy a right or left half?
   int free = 0;
   if (bit_isset(bd_sizes[k].alloc, bi / 2)) {
     // one of the pair is free
