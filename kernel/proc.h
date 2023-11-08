@@ -87,7 +87,7 @@ typedef struct list Proc_list;
 
 // Per-process state
 struct proc {
-  Proc_list nearby;
+  Proc_list list;              // Make proc a list element 
   struct spinlock lock;
 
   // p->lock must be held when using these:
@@ -110,3 +110,4 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 };
+
