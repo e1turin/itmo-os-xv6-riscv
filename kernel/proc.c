@@ -120,6 +120,8 @@ allocproc(void)
 {
   struct proc *p = (struct proc *)bd_malloc(sizeof(struct proc));
 
+  acquire(&p->lock);
+
   p->pid = allocpid();
   p->state = USED;
 
