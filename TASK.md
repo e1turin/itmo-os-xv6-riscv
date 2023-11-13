@@ -213,3 +213,118 @@ void bit_invert(char *array, int index) {
     80006254:	0141                	addi	sp,sp,16
     80006256:	8082                	ret
 ```
+
+GDB показывает следующие регистры до выполнения `lbu a5,0(a0)` @ `0x80006248`.
+
+```gdb
+┌─Register group: general──────────────────────────────────────────────┐
+│zero           0x0      0                                             │
+│ra             0x8000656c       0x8000656c <bd_malloc+232>            │
+│sp             0x8024ced0       0x8024ced0                            │
+│gp             0x0      0x0                                           │
+│tp             0x0      0x0                                           │
+│t0             0x8000280e       2147493902                            │
+│t1             0x800000000008021d       -9223372036854250979          │
+│t2             0x0      0                                             │
+│fp             0x8024cee0       0x8024cee0                            │
+│s1             0x7      7                                             │
+│a0             0x41     65                                            │
+│a1             0x1      1                                             │
+│a2             0x1      1                                             │
+│a3             0x1      1                                             │
+│a4             0x40     64                                            │
+│a5             0x1      1                                             │
+│a6             0x0      0                                             │
+│a7             0x1      1                                             │
+│s2             0x800089f0       2147518960                            │
+│s3             0xe0     224                                           │
+│s4             0x800089f8       2147518968                            │
+│s5             0x8021c800       2149697536                            │
+│s6             0x0      0                                             │
+│s7             0x5      5                                             │
+│s8             0x0      0                                             │
+│s9             0x0      0                                             │
+│s10            0x0      0                                             │
+│s11            0x0      0                                             │
+┌──────────────────────────────────────────────────────────────────────┐
+│B+  0x80006228 <bit_invert>         addi    sp,sp,-16                 │
+│    0x8000622a <bit_invert+2>       sd      s0,8(sp)                  │
+│    0x8000622c <bit_invert+4>       addi    s0,sp,16                  │
+│    0x8000622e <bit_invert+6>       sraiw   a5,a1,0x1f                │
+│    0x80006232 <bit_invert+10>      srliw   a5,a5,0x1d                │
+│    0x80006236 <bit_invert+14>      addw    a1,a1,a5                  │
+│    0x80006238 <bit_invert+16>      sraiw   a4,a1,0x3                 │
+│    0x8000623c <bit_invert+20>      add     a0,a0,a4                  │
+│    0x8000623e <bit_invert+22>      andi    a1,a1,7                   │
+│    0x80006240 <bit_invert+24>      subw    a1,a1,a5                  │
+│    0x80006242 <bit_invert+26>      li      a5,1                      │
+│    0x80006244 <bit_invert+28>      sllw    a1,a5,a1                  │
+│  > 0x80006248 <bit_invert+32>      lbu     a5,0(a0)                  │
+│    0x8000624c <bit_invert+36>      xor     a1,a1,a5                  │
+│    0x8000624e <bit_invert+38>      sb      a1,0(a0)                  │
+│    0x80006252 <bit_invert+42>      ld      s0,8(sp)                  │
+│    0x80006254 <bit_invert+44>      addi    sp,sp,16                  │
+│    0x80006256 <bit_invert+46>      ret                               │
+│    0x80006258 <bd_print_vector>    addi    sp,sp,-80                 │
+│    0x8000625a <bd_print_vector+2>  sd      ra,72(sp)                 │
+│    0x8000625c <bd_print_vector+4>  sd      s0,64(sp)                 │
+└──────────────────────────────────────────────────────────────────────┘
+remote Thread 1.1 In: bit_invert                   L69   PC: 0x80006248
+```
+А уже после — лежит в каневе.
+
+```gdb
+┌─Register group: general──────────────────────────────────────────────┐
+│zero           0x0      0                                             │
+│ra             0x8000057c       0x8000057c <panic+62>                 │
+│sp             0x8024cd80       0x8024cd80                            │
+│gp             0x0      0x0                                           │
+│tp             0x0      0x0                                           │
+│t0             0x8000280e       2147493902                            │
+│t1             0x800000000008021d       -9223372036854250979          │
+│t2             0x0      0                                             │
+│fp             0x8024cda0       0x8024cda0                            │
+│s1             0x800083e0       2147517408                            │
+│a0             0x0      0                                             │
+│a1             0x80006248       2147508808                            │
+│a2             0x41     65                                            │
+│a3             0x1      1                                             │
+│a4             0x8000857e       2147517822                            │
+│a5             0x1      1                                             │
+│a6             0x0      0                                             │
+│a7             0x1      1                                             │
+│s2             0x80006248       2147508808                            │
+│s3             0xd      13                                            │
+│s4             0x800089f8       2147518968                            │
+│s5             0x8021c800       2149697536                            │
+│s6             0x0      0                                             │
+│s7             0x5      5                                             │
+│s8             0x0      0                                             │
+│s9             0x0      0                                             │
+│s10            0x0      0                                             │
+│s11            0x0      0                                             │
+└──────────────────────────────────────────────────────────────────────┘
+│    0x80000562 <panic+36>   mv      a0,s1                             │
+│    0x80000564 <panic+38>   auipc   ra,0x0                            │
+│    0x80000568 <panic+42>   jalr    36(ra)                            │
+│    0x8000056c <panic+46>   auipc   a0,0x8                            │
+│    0x80000570 <panic+50>   addi    a0,a0,-1220                       │
+│    0x80000574 <panic+54>   auipc   ra,0x0                            │
+│    0x80000578 <panic+58>   jalr    20(ra)                            │
+│    0x8000057c <panic+62>   li      a5,1                              │
+│    0x8000057e <panic+64>   auipc   a4,0x8                            │
+│    0x80000582 <panic+68>   sw      a5,1074(a4)                       │
+│  > 0x80000586 <panic+72>   j       0x80000586 <panic+72>             │
+│    0x80000588 <printf>     addi    sp,sp,-192                        │
+│    0x8000058a <printf+2>   sd      ra,120(sp)                        │
+│    0x8000058c <printf+4>   sd      s0,112(sp)                        │
+│    0x8000058e <printf+6>   sd      s1,104(sp)                        │
+│    0x80000590 <printf+8>   sd      s2,96(sp)                         │
+│    0x80000592 <printf+10>  sd      s3,88(sp)                         │
+│    0x80000594 <printf+12>  sd      s4,80(sp)                         │
+│    0x80000596 <printf+14>  sd      s5,72(sp)                         │
+│    0x80000598 <printf+16>  sd      s6,64(sp)                         │
+│    0x8000059a <printf+18>  sd      s7,56(sp)                         │
+└──────────────────────────────────────────────────────────────────────┘
+remote Thread 1.1 In: panic                        L126  PC: 0x80000586
+```
