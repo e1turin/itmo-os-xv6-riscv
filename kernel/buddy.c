@@ -62,11 +62,11 @@ void bit_clear(char *array, int index) {
 // Invert bit at position index in array which stands for xor'ed bits of pair
 // blocks at (2 * index) and (2 * index + 1) positions
 void bit_invert(char *array, int index) {
-  int b_idx = index / 2; // Every bit is xor'ed with the next one thus flag in
-                         // the array has a bit index two times smaller
-  char b = array[b_idx / 8];
-  char m = (1 << (b_idx % 8));
-  array[b_idx / 8] = (b ^ m);
+  // int b_idx = index / 2; // Every bit is xor'ed with the next one thus flag in
+  //                        // the array has a bit index two times smaller
+  char b = array[index / 8];
+  char m = (1 << (index % 8));
+  array[index / 8] = (b ^ m);
 }
 
 // Print a bit vector as a list of ranges of 1 bits
@@ -143,13 +143,13 @@ void *bd_malloc(uint64 nbytes) {
 
   // Found a block; pop it and potentially split it.
   char *p = lst_pop(&bd_sizes[k].free);
-  bit_invert(bd_sizes[k].alloc, blk_index(k, p));
+  bit_invert(bd_sizes[k].alloc, blk_index(k, p) / 2);
   for (; k > fk; k--) {
     // split a block at size k and mark one half allocated at size k-1
     // and put the buddy on the free list at size k-1
     char *q = p + BLK_SIZE(k - 1);  // p's buddy
     bit_set(bd_sizes[k].split, blk_index(k, p));
-    bit_invert(bd_sizes[k - 1].alloc, blk_index(k - 1, p));
+    bit_invert(bd_sizes[k - 1].alloc, blk_index(k - 1, p) / 2);
     lst_push(&bd_sizes[k - 1].free, q);
   }
   release(&lock);
@@ -177,7 +177,7 @@ void bd_free(void *p) {
   for (k = size(p); k < MAXSIZE; k++) {
     int bi = blk_index(k, p);
     int buddy = (bi % 2 == 0) ? bi + 1 : bi - 1; // Is buddy a right or left half?
-    bit_invert(bd_sizes[k].alloc, bi);           // Free p at size k
+    bit_invert(bd_sizes[k].alloc, bi / 2);         // Free p at size k
     if (bit_isset(bd_sizes[k].alloc, buddy / 2)) { // Is buddy allocated?
       break;                                       // break out of loop
     }
@@ -226,7 +226,7 @@ void bd_mark(void *start, void *stop) {
         // if a block is allocated at size k, mark it as split too.
         bit_set(bd_sizes[k].split, bi);
       }
-      bit_invert(bd_sizes[k].alloc, bi);
+      bit_invert(bd_sizes[k].alloc, bi / 2);
     }
   }
 }

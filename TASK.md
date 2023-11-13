@@ -163,4 +163,53 @@ sz_info.alloc`). Таким же образом нужно хранить инф
   проделанной работе
 - Готовность запустить тесты по просьбе преподавателя
 
+- - -
 
+- научиться пользоваться gdb (`gdb-multiarch` в контейнере)
+- фиксим ошибки мультипоточности
+
+```sh
+init: starting sh
+$ ls
+.              1 1 1024
+..             1 1 1024
+README         2 2 2354
+/* omitted */
+$ ls
+scause 0x000000000000000d
+sepc=0x0000000080006248 stval=0x0000000000000041
+panic: kerneltrap
+```
+- https://stackoverflow.com/questions/77235828/xv6-scheduling-kernel-panic
+
+```diff
+0000000080006228 <bit_invert>:
+
+// Invert bit at position index in array which stands for xor'ed bits of pair
+// blocks at (2 * index) and (2 * index + 1) positions
+void bit_invert(char *array, int index) {
+    80006228:	1141                	addi	sp,sp,-16
+    8000622a:	e422                	sd	s0,8(sp)
+    8000622c:	0800                	addi	s0,sp,16
+  // int b_idx = index / 2; // Every bit is xor'ed with the next one thus flag in
+  //                        // the array has a bit index two times smaller
+  char b = array[index / 8];
+    8000622e:	41f5d79b          	sraiw	a5,a1,0x1f
+    80006232:	01d7d79b          	srliw	a5,a5,0x1d
+    80006236:	9dbd                	addw	a1,a1,a5
+    80006238:	4035d71b          	sraiw	a4,a1,0x3
+    8000623c:	953a                	add	a0,a0,a4
+  char m = (1 << (index % 8));
+    8000623e:	899d                	andi	a1,a1,7
+    80006240:	9d9d                	subw	a1,a1,a5
+    80006242:	4785                	li	a5,1
+    80006244:	00b795bb          	sllw	a1,a5,a1
+  array[index / 8] = (b ^ m);
++   80006248:	00054783          	lbu	a5,0(a0)
+    8000624c:	8dbd                	xor	a1,a1,a5
+    8000624e:	00b50023          	sb	a1,0(a0)
+}
+    80006252:	6422                	ld	s0,8(sp)
+    80006254:	0141                	addi	sp,sp,16
+    80006256:	8082                	ret
+```
