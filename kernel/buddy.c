@@ -62,8 +62,6 @@ void bit_clear(char *array, int index) {
 // Invert bit at position index in array which stands for xor'ed bits of pair
 // blocks at (2 * index) and (2 * index + 1) positions
 void bit_invert(char *array, int index) {
-  // int b_idx = index / 2; // Every bit is xor'ed with the next one thus flag in
-  //                        // the array has a bit index two times smaller
   char b = array[index / 8];
   char m = (1 << (index % 8));
   array[index / 8] = (b ^ m);
