@@ -118,8 +118,6 @@ allocpid()
 static struct proc*
 allocproc(void)
 {
-  acquire(&ptable.lock);
-
   struct proc *p = (struct proc *)bd_malloc(sizeof(struct proc));
 
   if (p == 0) {
@@ -127,8 +125,11 @@ allocproc(void)
   }    
 
   // fill with zeros for safety
-  memset(p, 0, sizeof(struct proc));
+  // memset(p, 0, sizeof(struct proc));
+  *p = (struct proc){0};
+  initlock(&p->lock, "plock");
 
+  acquire(&ptable.lock);
   lst_push(&ptable.lst, (Proc_list *)p);
 
   // acquire(&p->lock); // needs to guarante that not be used till allocation and setup end
@@ -138,24 +139,18 @@ allocproc(void)
   initlock(&p->lock, "proc");
 
   if ((p->kstack = (uint64)kalloc()) == 0) {
-    freeproc(p);
-    release(&ptable.lock);
-    return 0;
+    goto error;
   }
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
-    freeproc(p);
-    release(&ptable.lock);
-    return 0;
+    goto error;
   }
 
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
   if(p->pagetable == 0){
-    freeproc(p);
-    release(&ptable.lock);
-    return 0;
+    goto error;
   }
 
   // Set up new context to start executing at forkret,
@@ -165,6 +160,11 @@ allocproc(void)
   p->context.sp = p->kstack + PGSIZE;
 
   return p;
+
+error:
+  freeproc(p);
+  release(&ptable.lock);
+  return 0;
 }
 
 // free a proc structure and the data hanging from it,
@@ -355,8 +355,9 @@ reparent(struct proc *p)
 {
   acquire(&ptable.lock);
   for(Proc_list *pl = ptable.lst.next; pl != &ptable.lst; pl = pl->next){
-    struct proc *pp = (struct proc *)pl;
     release(&ptable.lock);
+
+    struct proc *pp = (struct proc *)pl;
 
     if(pp->parent == p){
       pp->parent = initproc;
@@ -428,8 +429,9 @@ wait(uint64 addr)
 
     acquire(&ptable.lock);
     for(Proc_list *pl = ptable.lst.next; pl != &ptable.lst; pl = pl->next){
-      struct proc *pp = (struct proc *)pl;
       release(&ptable.lock);
+
+      struct proc *pp = (struct proc *)pl;
 
       if(pp->parent == p){
         // make sure the child isn't still in exit() or swtch().
@@ -445,6 +447,7 @@ wait(uint64 addr)
             release(&wait_lock);
             return -1;
           }
+
           acquire(&ptable.lock);
           freeproc(pp);
           release(&ptable.lock);
@@ -489,8 +492,9 @@ scheduler(void)
 
     acquire(&ptable.lock);
     for(Proc_list *pl = ptable.lst.next; pl != & ptable.lst; pl = pl->next){
-      struct proc *p = (struct proc *)pl;
       release(&ptable.lock);
+
+      struct proc *p = (struct proc *)pl;
 
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
@@ -610,8 +614,9 @@ wakeup(void *chan)
 {
   acquire(&ptable.lock);
   for(Proc_list *pl = ptable.lst.next; pl != &ptable.lst; pl = pl->next) {
-    struct proc *p = (struct proc *)pl;
     release(&ptable.lock);
+
+    struct proc *p = (struct proc *)pl;
 
     if(p != myproc()){
       acquire(&p->lock);
@@ -634,8 +639,9 @@ kill(int pid)
 {
   acquire(&ptable.lock);
   for(Proc_list *pl = ptable.lst.next; pl != &ptable.lst; pl = pl->next){
-    struct proc *p = (struct proc *)pl;
     release(&ptable.lock);
+
+    struct proc *p = (struct proc *)pl;
 
     acquire(&p->lock);
     if(p->pid == pid){
@@ -725,8 +731,9 @@ procdump(void)
   printf("\n");
   acquire(&ptable.lock);
   for(Proc_list *pl = ptable.lst.next; pl != &ptable.lst; pl = pl->next){
-    p = (struct proc *)pl;
     release(&ptable.lock);
+
+    p = (struct proc *)pl;
 
     if(p->state == UNUSED)
       continue;
