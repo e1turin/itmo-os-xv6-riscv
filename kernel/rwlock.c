@@ -1,9 +1,10 @@
 /// Read-Write lock
-#include "defs.h"
+
 #include "rwlock.h"
+#include "defs.h"
 
 void
-initlock(struct rwlock *lk, char *name)
+initrwlock(struct rwlock *lk, char *name)
 {
   initlock(&lk->read, name);
   initlock(&lk->write, name);
