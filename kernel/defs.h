@@ -203,3 +203,9 @@ void *          bd_malloc(uint64 nbytes);
 void            bd_free(void *p);
 void            bd_init(void *base, void *end);
 
+// rwlock.c
+void            initlock(struct rwlock *, char *);
+void            acquire_write(struct rwlock *);
+void            release_write(struct rwlock *);
+void            acquire_read(struct rwlock *);
+void            release_read(struct rwlock *);
