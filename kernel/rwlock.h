@@ -1,4 +1,7 @@
-/// Read-Write lock
+/// Read-Write lock.
+/// Only one thread can write to the resource 
+/// and many threads can read from the resource.
+/// No write can be performed while resource is read by any thread.
 
 struct rwlock {
   struct spinlock read;

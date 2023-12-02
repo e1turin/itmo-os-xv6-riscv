@@ -30,7 +30,7 @@ acquire_read(struct rwlock *lk)
   lk->reader_cnt++;
   if(lk->reader_cnt == 1) {
     acquire(&lk->write);
-    pop_off();
+    pop_off(); // XXX: Is it necessary to desable interrupts?
   }
   release(&lk->read);
 }

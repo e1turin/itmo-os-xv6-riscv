@@ -81,8 +81,13 @@ struct trapframe {
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+
 // Per-process state
 struct proc {
+  // trait {
+  struct list list;            // Process references to next and previous process in table
+  // } trait
+
   struct spinlock lock;
 
   // p->lock must be held when using these:
@@ -104,4 +109,5 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
 };
