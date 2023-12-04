@@ -1,3 +1,5 @@
+#include "list.h"
+
 // Saved registers for kernel context switches.
 struct context {
   uint64 ra;
@@ -81,12 +83,11 @@ struct trapframe {
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
-
 // Per-process state
 struct proc {
-  // trait {
+  // trait list {
   struct list list;            // Process references to next and previous process in table
-  // } trait
+  // } trait list
 
   struct spinlock lock;
 
@@ -111,3 +112,4 @@ struct proc {
   char name[16];               // Process name (debugging)
 
 };
+

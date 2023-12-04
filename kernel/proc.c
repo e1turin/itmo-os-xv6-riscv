@@ -3,10 +3,9 @@
 #include "memlayout.h"
 #include "riscv.h"
 #include "spinlock.h"
-#include "rwlock.h"
-#include "list.h"
-#include "proc.h"
 #include "defs.h"
+#include "proc.h"
+#include "rwlock.h"
 
 struct cpu cpus[NCPU];
 
