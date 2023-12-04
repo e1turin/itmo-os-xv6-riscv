@@ -363,7 +363,11 @@ wait(uint64 addr)
     // Scan through table looking for exited children.
     havekids = 0;
 
-    acquire_write(&pt_lock);
+    acquire_write(&pt_lock); // XXX: Problem is that pt_lock is held not only
+                             // for CPUs but also process, so CPU which try to
+                             // acquire(&pt_lock.write) constantly waits for 
+                             // the condition pt_lock.reader_cnt == 0, which seems
+                             // imposible when there are more processes then the cpu
     struct list *pl;
     for(pl = proctable.next; pl != &proctable; pl = pl->next){
 
