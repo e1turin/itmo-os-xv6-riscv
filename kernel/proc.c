@@ -8,7 +8,9 @@
 
 struct cpu cpus[NCPU];
 
-struct proc proc[NPROC];
+uint64 pt_size = NPROC;
+struct proc *proctable; // struct proc[pt_size];
+struct spinlock pt_lock;
 
 struct proc *initproc;
 
@@ -26,6 +28,7 @@ extern char trampoline[]; // trampoline.S
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 
+/*
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
 // guard page.
@@ -34,7 +37,7 @@ proc_mapstacks(pagetable_t kpgtbl)
 {
   struct proc *p;
   
-  for(p = proc; p < &proc[NPROC]; p++) {
+  for(p = proctable; p < &proctable[NPROC]; p++) {
     char *pa = kalloc();
     if(pa == 0)
       panic("kalloc");
@@ -42,19 +45,27 @@ proc_mapstacks(pagetable_t kpgtbl)
     kvmmap(kpgtbl, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
   }
 }
+*/
 
 // initialize the proc table.
 void
 procinit(void)
 {
   struct proc *p;
-  
+
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
-  for(p = proc; p < &proc[NPROC]; p++) {
-      initlock(&p->lock, "proc");
-      p->state = UNUSED;
-      p->kstack = KSTACK((int) (p - proc));
+
+  initlock(&pt_lock, "pt_lock");
+  
+  acquire(&pt_lock);
+  proctable = bd_malloc(pt_size);
+  release(&pt_lock);
+
+  for (p = proctable; p < &proctable[pt_size]; p++) {
+    initlock(&p->lock, "proc");
+    p->state = UNUSED;
+    p->kstack = (uint64)kalloc();
   }
 }
 
@@ -102,6 +113,25 @@ allocpid()
   return pid;
 }
 
+void
+growproctable()
+{
+  acquire(&pt_lock); // XXX: Problem is that every other threads must wait
+                     // untill copying ends as their struct proc can be changed
+                     // after the copying. So it needs some tricky
+                     // syncranization again - kind of GIL.
+
+  uint64 new_pt_size = pt_size + NPROC;
+  struct proc *new_pt = bd_malloc(sizeof(struct proc) * new_pt_size);
+
+  struct proc *p;
+  for (p = proctable; p < &proctable[pt_size]; ++p) {
+    new_pt[(uint64)(p-proctable)] = *p;
+  }
+
+  release(&pt_lock);
+}
+
 // Look in the process table for an UNUSED proc.
 // If found, initialize state required to run in the kernel,
 // and return with p->lock held.
@@ -111,7 +141,7 @@ allocproc(void)
 {
   struct proc *p;
 
-  for(p = proc; p < &proc[NPROC]; p++) {
+  for(p = proctable; p < &proctable[pt_size]; p++) {
     acquire(&p->lock);
     if(p->state == UNUSED) {
       goto found;
@@ -125,16 +155,9 @@ found:
   p->pid = allocpid();
   p->state = USED;
 
-  // Allocate a trapframe page.
-  if((p->trapframe = (struct trapframe *)kalloc()) == 0){
-    freeproc(p);
-    release(&p->lock);
-    return 0;
-  }
-
-  // An empty user page table.
-  p->pagetable = proc_pagetable(p);
-  if(p->pagetable == 0){
+  if ((p->trapframe = (struct trapframe *)kalloc()) == 0 || // Allocate a trapframe page.
+      (p->kstack = (uint64)kalloc()) == 0 || // Allocate a kernel stack page.
+      (p->pagetable = proc_pagetable(p)) == 0) { // An empty user page table.
     freeproc(p);
     release(&p->lock);
     return 0;
