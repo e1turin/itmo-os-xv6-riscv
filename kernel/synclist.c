@@ -5,7 +5,6 @@
 #include "types.h"
 #include "defs.h"
 #include "synclist.h"
-#include <stdbool.h>
 
 /// Initialize empty syncronized double-linked circular list
 void 
@@ -31,6 +30,7 @@ synclist_push(struct synclist *lst, struct synclist *e)
 }
 
 /// useful function for indicating new reference to list element
+/// lst->lock must be acquired
 void
 synclist_acquire(struct synclist *e)
 {
@@ -39,6 +39,7 @@ synclist_acquire(struct synclist *e)
   release(&e->lock);
 }
 
+/// Function tries to remove element from list.
 /// lst->lock must be acquired
 void
 synclist_remove(struct synclist *lst, struct synclist *e)
@@ -53,7 +54,7 @@ synclist_remove(struct synclist *lst, struct synclist *e)
   if (e->prev != lst)
     synclist_acquire(e->prev);
 
-  acquire(&e->lock); // XXX: save invarian
+  acquire(&e->lock);
   e->ref_cnt -= 2;
   
   //// Code out of list remove function
@@ -61,17 +62,24 @@ synclist_remove(struct synclist *lst, struct synclist *e)
   // CHECK(e->ref_cnt > 0);
   // 
   // if (e->ref_cnt == 0) {
-  //   pop_off();
-  //   bd_free(e);
+  //   pop_off();               <---| do it out of list implementation
+  //   bd_free(e);              <---| (+release(&e->list_lock))
   // } else {
   //   release(&e->list_lock);
   // }
+
+  release(&e->lock);
+
+  if (e->ref_cnt == 0) {
+    bd_free(e);
+  }
 }
 
 
 /// lst->lock must be acquired
 bool
-synclist_empty(struct synclist *lst) {
+synclist_empty(struct synclist *lst)
+{
   return lst->next == lst && lst->prev == lst;
 }
 
@@ -91,47 +99,41 @@ synclist_release(struct synclist *lst, struct synclist *e)
   // if (e->ref_cnt == 0) {
   //   s_lst_release_element(lst, (struct sync_list*)e->lst.next);
   //   s_lst_release_element(lst, (struct sync_list*)e->lst.prev);
-  //   pop_off();
-  //   bd_free(e);
+  //   pop_off();           <---| do it out of list implementation
+  //   bd_free(e);          <---| (+release(&e->list_lock))
   // } else {
   //   release(&e->list_lock);
   // }
+
+  release(&e->lock);
+
+  if (e->ref_cnt == 0) {
+    synclist_release(lst, e->next);
+    synclist_release(lst, e->prev);
+    bd_free(e);
+  }
 }
 
 /// lst->lock must be acquired
 struct synclist*
 synclist_next(struct synclist *e)
 {
-  struct synclist *next = e->next;
-
   // avoid acquiring the list root
-  if (next == e)
+  if (e->next == e)
     return e;
 
-  synclist_acquire(next);
+  synclist_acquire(e->next);
 
-  return next;
+  return e->next;
 }
 
 /// lst->lock must be acquired
 void
-synclist_move_next(struct synclist *lst, struct synclist **e)
+synclist_iter_next(struct synclist *lst, struct synclist **e)
 {
-  struct synclist *next;
+  struct synclist *next = synclist_next(*e);
 
-  // XXX: synclist_release alreade checks if element is list root
-  // Unnecessery check!
-  //
-  // avoid acquiring the list root
-  if ((*e)->next == lst) {
-    next = (*e)->next;
-  } else {
-    next = synclist_next(*e);
-  }
-
-  // and avoid necessary release
-  if (*e != lst)
-    synclist_release(lst, *e);
+  synclist_release(lst, *e);
 
   *e = next;
 }
