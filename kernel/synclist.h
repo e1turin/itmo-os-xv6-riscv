@@ -5,9 +5,7 @@
 #ifndef KERNEL_SYNCLIST_H
 #define KERNEL_SYNCLIST_H
 
-#include "types.h"
-#include "spinlock.h"
-#include "stdbool.h"
+#include <stdbool.h>
 
 struct synclist {
     struct synclist *next;

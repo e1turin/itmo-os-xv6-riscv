@@ -2,9 +2,10 @@
 #include "param.h"
 #include "memlayout.h"
 #include "riscv.h"
-#include "synclist.h"
+#include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "synclist.h"
 
 struct cpu cpus[NCPU];
 
@@ -419,7 +420,7 @@ wait(uint64 addr)
           release(&wait_lock);
 
           acquire(&proctable.lock);
-          // removeproc
+          removeproc(pp);
           synclist_release(&proctable, pl);
           release(&proctable.lock);
 
