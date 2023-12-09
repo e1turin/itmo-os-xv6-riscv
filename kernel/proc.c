@@ -20,6 +20,7 @@ struct spinlock pid_lock;
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
+static void removeproc(struct proc *p);
 
 extern char trampoline[]; // trampoline.S
 
@@ -96,14 +97,28 @@ allocproc(void)
     return 0;
   }
 
+  *p = (struct proc){0};
+  initlock(&p->lock, "proc");
+
+  acquire(&proctable.lock);
+  synclist_push(&proctable, &p->lst);
+  release(&proctable.lock);
+
+  acquire(&p->lock);
   p->pid = allocpid();
   p->state = USED;
-  initlock(&p->lock, "proc");
 
   if ((p->trapframe = (struct trapframe *)kalloc()) == 0 || // Allocate a trapframe page.
       (p->kstack = (uint64)kalloc()) == 0 || // Allocate a kernel stack.
       (p->pagetable = proc_pagetable(p)) == 0) { // An empty user page table.
     freeproc(p);
+    release(&p->lock);
+
+    acquire(&proctable.lock);
+    removeproc(p);
+    synclist_release(&proctable, &p->lst);
+    release(&proctable.lock);
+
     return 0;
   }
 
@@ -222,11 +237,11 @@ userinit(void)
 
   p->state = RUNNABLE;
 
-  acquire(&proctable.lock);
-  synclist_push(&proctable, &p->lst);
-  release(&proctable.lock);
+  // acquire(&proctable.lock);
+  // synclist_push(&proctable, &p->lst);
+  // release(&proctable.lock);
 
-  // release(&p->lock);
+  release(&p->lock);
 }
 
 // Grow or shrink user memory by n bytes.
@@ -287,18 +302,18 @@ fork(void)
 
   pid = np->pid;
 
-  // release(&np->lock);
+  release(&np->lock);
 
-  // acquire(&wait_lock);
+  acquire(&wait_lock);
   np->parent = p;
-  // release(&wait_lock);
+  release(&wait_lock);
 
-  // acquire(&np->lock);
+  acquire(&np->lock);
   np->state = RUNNABLE;
-  // release(&np->lock);
+  release(&np->lock);
 
   acquire(&proctable.lock);
-  synclist_push(&proctable, &np->lst);
+  // synclist_push(&proctable, &np->lst);
   synclist_release(&proctable, &np->lst);
   release(&proctable.lock);
 
@@ -306,7 +321,7 @@ fork(void)
 }
 
 // Pass p's abandoned children to init.
-// Caller must hold wait_lock and p->lock and proctable->lock.
+// Caller must hold wait_lock and proctable->lock.
 void
 reparent(struct proc *p)
 {
@@ -586,7 +601,6 @@ sleep(void *chan, struct spinlock *lk)
 void
 wakeup(void *chan)
 {
-
   acquire(&proctable.lock);
   for(struct synclist *pl = synclist_next(&proctable); 
       pl != &proctable; 
@@ -720,8 +734,8 @@ procdump(void)
     release(&proctable.lock);
 
     struct proc *p = (struct proc *)pl;
-    if(p->state == UNUSED)
-      continue;
+    // if(p->state == UNUSED)
+    //   continue;
     if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
       state = states[p->state];
     else

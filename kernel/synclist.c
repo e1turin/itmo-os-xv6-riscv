@@ -70,12 +70,18 @@ synclist_remove(struct synclist *lst, struct synclist *e)
   // } else {
   //   release(&e->list_lock);
   // }
-
-  release(&e->lock);
-
   if (e->ref_cnt == 0) {
+    pop_off();
     bd_free(e);
+  } else {
+    release(&e->lock);
   }
+
+  // release(&e->lock);
+  //
+  // if (e->ref_cnt == 0) {
+  //   bd_free(e);
+  // }
 }
 
 
@@ -107,14 +113,22 @@ synclist_release(struct synclist *lst, struct synclist *e)
   // } else {
   //   release(&e->list_lock);
   // }
-
-  release(&e->lock);
-
   if (e->ref_cnt == 0) {
     synclist_release(lst, e->next);
     synclist_release(lst, e->prev);
+    pop_off();
     bd_free(e);
+  } else {
+    release(&e->lock);
   }
+
+  // release(&e->lock);
+  //
+  // if (e->ref_cnt == 0) {
+  //   synclist_release(lst, e->next);
+  //   synclist_release(lst, e->prev);
+  //   bd_free(e);
+  // }
 }
 
 /// lst->lock must be acquired
@@ -134,9 +148,20 @@ synclist_next(struct synclist *e)
 void
 synclist_iter_next(struct synclist *lst, struct synclist **e)
 {
-  struct synclist *next = synclist_next(*e);
+  // struct synclist *next = synclist_next(*e);
+  //
+  // synclist_release(lst, *e);
 
-  synclist_release(lst, *e);
+  struct synclist *next;
+  if ((*e)->next == lst) {
+    next = (*e)->next;
+  } else {
+    next = synclist_next(*e);
+  }
+
+  if (*e != lst) {
+    synclist_release(lst, *e);
+  }
 
   *e = next;
 }
