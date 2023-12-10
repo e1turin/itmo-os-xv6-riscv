@@ -9,6 +9,7 @@
 репозиторий был форкнут и версии каждой ЛР будут помещаться в отдельные ветки:
 
 - [lab-1](https://github.com/e1turin/itmo-os-xv6-riscv/tree/lab-1) (ping-pong: pipe, fork)
+- [lab-2](https://github.com/e1turin/itmo-os-xv6-riscv/tree/lab-2) (buddy allocator, unlimited process table)
 - ...
 
 
@@ -39,10 +40,11 @@
 
 - https://github.com/Pivnoy/os-dev-env
 
-Примеры выполнения работ у других студентов
+Примеры выполнения работ у других студентов с интересными идеями решения задач.
 
 - https://github.com/Hyperb0rean/itmo_os (+rust)
 - https://github.com/vityaman-edu/os-xv6-riscv
 - https://github.com/NorthCapDiamond/Operating-Systems-xv6
 - https://github.com/Malevrovich/ITMO-OS-xv6-riscv
+- https://github.com/akorton/xv6-riscv-OSlab1
 
