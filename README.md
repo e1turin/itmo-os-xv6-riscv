@@ -10,6 +10,7 @@
 
 - (см. [branches/main](https://github.com/e1turin/itmo-os-xv6-riscv))
 
+- (см. [TASK.md](./TASK.md))
 
 
 # Комментарии от разработчиков
