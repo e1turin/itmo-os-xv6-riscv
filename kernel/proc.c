@@ -311,7 +311,7 @@ void
 reparent(struct proc *p)
 {
 
-  for(struct synclist *pl = synclist_next(&proctable); 
+  for(struct synclist *pl = synclist_begin(&proctable); 
       pl != &proctable; 
       synclist_iter_next(&proctable, &pl)) {
     release(&proctable.lock);
@@ -389,7 +389,7 @@ wait(uint64 addr)
     havekids = 0;
 
     acquire(&proctable.lock);
-    for(struct synclist *pl = synclist_next(&proctable); 
+    for(struct synclist *pl = synclist_begin(&proctable); 
         pl != &proctable; 
         synclist_iter_next(&proctable, &pl)) {
       release(&proctable.lock);
@@ -462,7 +462,7 @@ scheduler(void)
     intr_on();
 
     acquire(&proctable.lock);
-    for(struct synclist *pl = synclist_next(&proctable); 
+    for(struct synclist *pl = synclist_begin(&proctable); 
         pl != &proctable; 
         synclist_iter_next(&proctable, &pl)) {
       release(&proctable.lock);
@@ -587,7 +587,7 @@ void
 wakeup(void *chan)
 {
   acquire(&proctable.lock);
-  for(struct synclist *pl = synclist_next(&proctable); 
+  for(struct synclist *pl = synclist_begin(&proctable); 
       pl != &proctable; 
       synclist_iter_next(&proctable, &pl)) {
     release(&proctable.lock);
@@ -614,7 +614,7 @@ int
 kill(int pid)
 {
   acquire(&proctable.lock);
-  for(struct synclist *pl = synclist_next(&proctable); 
+  for(struct synclist *pl = synclist_begin(&proctable); 
       pl != &proctable; 
       synclist_iter_next(&proctable, &pl)) {
     release(&proctable.lock);
@@ -713,7 +713,7 @@ procdump(void)
   printf("\n");
 
   acquire(&proctable.lock);
-  for(struct synclist *pl = synclist_next(&proctable); 
+  for(struct synclist *pl = synclist_begin(&proctable); 
       pl != &proctable; 
       synclist_iter_next(&proctable, &pl)) {
     release(&proctable.lock);

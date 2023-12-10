@@ -19,6 +19,7 @@ synclist_init(struct synclist *lst)
   initlock(&lst->lock, "synclist_lock");
 }
 
+/// Function pushes element to list
 /// lst->lock must be acquired
 void
 synclist_push(struct synclist *lst, struct synclist *e)
@@ -32,7 +33,7 @@ synclist_push(struct synclist *lst, struct synclist *e)
   lst->next = e;
 }
 
-/// useful function for indicating new reference to list element
+/// Function for indicating new reference to list element
 /// lst->lock must be acquired
 void
 synclist_acquire(struct synclist *e)
@@ -42,7 +43,7 @@ synclist_acquire(struct synclist *e)
   release(&e->lock);
 }
 
-/// Function tries to remove element from list.
+/// Function remove element from list but may be not free memory.
 /// lst->lock must be acquired
 void
 synclist_remove(struct synclist *lst, struct synclist *e)
@@ -51,31 +52,23 @@ synclist_remove(struct synclist *lst, struct synclist *e)
   e->prev->next = e->next;
   e->next->prev = e->prev;
 
+  // honestly count references to the element
   if (e->next != lst)
     synclist_acquire(e->next);
-
   if (e->prev != lst)
     synclist_acquire(e->prev);
 
   acquire(&e->lock);
   e->ref_cnt -= 2;
   
-  //// Code out of list remove function
-  // // freed before ref_count++
+  // freed before ref_count++
   // CHECK(e->ref_cnt > 0);
-  // 
-  if (e->ref_cnt == 0) {
-    pop_off();
-    bd_free(e);
-  } else {
-    release(&e->lock);
-  }
 
-  // release(&e->lock);
-  //
-  // if (e->ref_cnt == 0) {
-  //   bd_free(e);
-  // }
+  release(&e->lock);
+
+  if (e->ref_cnt == 0) {
+    bd_free(e);
+  }
 }
 
 
@@ -89,65 +82,58 @@ synclist_empty(struct synclist *lst)
 /// lst->lock must be acquired
 void
 synclist_release(struct synclist *lst, struct synclist *e)
-{
+{ 
+  // list root must not be acquired
   if (lst == e)
     return;
 
   acquire(&e->lock);
   e->ref_cnt--;
 
-  //// Code out of synclist function
   // CHECK(e->ref_cnt >= 0);
-  // 
+
   if (e->ref_cnt == 0) {
     synclist_release(lst, e->next);
     synclist_release(lst, e->prev);
-    pop_off();
+    release(&e->lock);
     bd_free(e);
   } else {
     release(&e->lock);
   }
-
-  // release(&e->lock);
-  //
-  // if (e->ref_cnt == 0) {
-  //   synclist_release(lst, e->next);
-  //   synclist_release(lst, e->prev);
-  //   bd_free(e);
-  // }
 }
 
+/// Returns pointer to next list element and acquires it if necessary.
 /// lst->lock must be acquired
 struct synclist*
-synclist_next(struct synclist *e)
-{
+synclist_next(struct synclist *lst, struct synclist *e)
+{ 
+  // empty list root or
+  // list root neighbour,
   // avoid acquiring the list root
-  if (e->next == e)
-    return e;
+  if (e->next == lst)
+    return e->next;
 
+  // regular list element
   synclist_acquire(e->next);
-
   return e->next;
 }
 
+/// First element of list or list root if list is empty.
+/// lst->lock must be acquired
+struct synclist*
+synclist_begin(struct synclist *lst)
+{
+  return synclist_next(lst, lst);
+}
+
+/// Moves element pointer over circular list elements.
 /// lst->lock must be acquired
 void
 synclist_iter_next(struct synclist *lst, struct synclist **e)
 {
-  // struct synclist *next = synclist_next(*e);
-  //
-  // synclist_release(lst, *e);
+  struct synclist *next = synclist_next(lst, *e);
 
-  struct synclist *next;
-  if ((*e)->next == lst) {
-    next = (*e)->next;
-  } else {
-    next = synclist_next(*e);
-  }
-
-  if (*e != lst) {
-    synclist_release(lst, *e);
-  }
+  synclist_release(lst, *e);
 
   *e = next;
 }
