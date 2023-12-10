@@ -19,21 +19,8 @@ synclist_init(struct synclist *lst)
   initlock(&lst->lock, "synclist_lock");
 }
 
-/// Function pushes element to list
-/// lst->lock must be acquired
-void
-synclist_push(struct synclist *lst, struct synclist *e)
-{
-  *e = (struct synclist){.ref_cnt = 3};
-  initlock(&e->lock, "synclist_elem_lock");
-  
-  e->next = lst->next;
-  e->prev = lst;
-  lst->next->prev = e;
-  lst->next = e;
-}
-
-/// Function for indicating new reference to list element
+/// Function for indicating new reference to list element. 
+/// If you going to use element after pushing it to list, you should acquire it.
 /// lst->lock must be acquired
 void
 synclist_acquire(struct synclist *e)
@@ -41,6 +28,20 @@ synclist_acquire(struct synclist *e)
   // acquire(&e->lock);
   e->ref_cnt++;
   // release(&e->lock);
+}
+
+/// Function pushes element to list
+/// lst->lock must be acquired
+void
+synclist_push(struct synclist *lst, struct synclist *e)
+{
+  *e = (struct synclist){.ref_cnt = 2};
+  initlock(&e->lock, "synclist_elem_lock");
+  
+  e->next = lst->next;
+  e->prev = lst;
+  lst->next->prev = e;
+  lst->next = e;
 }
 
 /// Function remove element from list but may be not free memory.
