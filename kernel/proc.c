@@ -230,7 +230,6 @@ userinit(void)
   // process lock is not held by allocproc, it can be safely pushed to list
   acquire(&proctable.lock);
   synclist_push(&proctable, &p->lst);
-  synclist_release(&proctable, &p->lst);
   release(&proctable.lock);
 }
 
@@ -299,7 +298,6 @@ fork(void)
   // process lock is not held by allocproc, it can be safely pushed to list
   acquire(&proctable.lock);
   synclist_push(&proctable, &np->lst);
-  synclist_release(&proctable, &np->lst);
   release(&proctable.lock);
 
   return pid;
