@@ -84,9 +84,7 @@ allocpid()
   return pid;
 }
 
-// Look in the process table for an UNUSED proc.
-// If found, initialize state required to run in the kernel,
-// and return with p->lock held.
+// Allocate new process structure.
 // If there are no free procs, or a memory allocation fails, return 0.
 static struct proc*
 allocproc(void)
@@ -97,14 +95,11 @@ allocproc(void)
     return 0;
   }
 
+  // No need to hold lock on process as it has no reference yet.
+
   *p = (struct proc){0};
   initlock(&p->lock, "proc");
 
-  acquire(&proctable.lock);
-  synclist_push(&proctable, &p->lst);
-  release(&proctable.lock);
-
-  acquire(&p->lock);
   p->pid = allocpid();
   p->state = USED;
 
@@ -113,11 +108,6 @@ allocproc(void)
       (p->pagetable = proc_pagetable(p)) == 0) { // An empty user page table.
     freeproc(p);
     release(&p->lock);
-
-    acquire(&proctable.lock);
-    removeproc(p);
-    synclist_release(&proctable, &p->lst);
-    release(&proctable.lock);
 
     return 0;
   }
@@ -146,7 +136,7 @@ freeproc(struct proc *p)
     proc_freepagetable(p->pagetable, p->sz);
 }
 
-// remove a proc from proctable
+// Remove a proc from proctable,
 // proctable.lock must be held
 static void
 removeproc(struct proc *p)
@@ -237,11 +227,11 @@ userinit(void)
 
   p->state = RUNNABLE;
 
-  // acquire(&proctable.lock);
-  // synclist_push(&proctable, &p->lst);
-  // release(&proctable.lock);
-
-  release(&p->lock);
+  // process lock is not held by allocproc, it can be safely pushed to list
+  acquire(&proctable.lock);
+  synclist_push(&proctable, &p->lst);
+  synclist_release(&proctable, &p->lst);
+  release(&proctable.lock);
 }
 
 // Grow or shrink user memory by n bytes.
@@ -263,7 +253,6 @@ growproc(int n)
   p->sz = sz;
   return 0;
 }
-
 // Create a new process, copying the parent.
 // Sets up child kernel stack to return as if from fork() system call.
 int
@@ -281,7 +270,6 @@ fork(void)
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
     freeproc(np);
-    // release(&np->lock);
     return -1;
   }
   np->sz = p->sz;
@@ -302,18 +290,15 @@ fork(void)
 
   pid = np->pid;
 
-  release(&np->lock);
-
   acquire(&wait_lock);
   np->parent = p;
   release(&wait_lock);
 
-  acquire(&np->lock);
   np->state = RUNNABLE;
-  release(&np->lock);
 
+  // process lock is not held by allocproc, it can be safely pushed to list
   acquire(&proctable.lock);
-  // synclist_push(&proctable, &np->lst);
+  synclist_push(&proctable, &np->lst);
   synclist_release(&proctable, &np->lst);
   release(&proctable.lock);
 
@@ -747,3 +732,4 @@ procdump(void)
   }
   release(&proctable.lock);
 }
+

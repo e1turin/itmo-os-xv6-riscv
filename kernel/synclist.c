@@ -64,12 +64,6 @@ synclist_remove(struct synclist *lst, struct synclist *e)
   // // freed before ref_count++
   // CHECK(e->ref_cnt > 0);
   // 
-  // if (e->ref_cnt == 0) {
-  //   pop_off();               <---| do it out of list implementation
-  //   bd_free(e);              <---| (+release(&e->list_lock))
-  // } else {
-  //   release(&e->list_lock);
-  // }
   if (e->ref_cnt == 0) {
     pop_off();
     bd_free(e);
@@ -105,14 +99,6 @@ synclist_release(struct synclist *lst, struct synclist *e)
   //// Code out of synclist function
   // CHECK(e->ref_cnt >= 0);
   // 
-  // if (e->ref_cnt == 0) {
-  //   s_lst_release_element(lst, (struct sync_list*)e->lst.next);
-  //   s_lst_release_element(lst, (struct sync_list*)e->lst.prev);
-  //   pop_off();           <---| do it out of list implementation
-  //   bd_free(e);          <---| (+release(&e->list_lock))
-  // } else {
-  //   release(&e->list_lock);
-  // }
   if (e->ref_cnt == 0) {
     synclist_release(lst, e->next);
     synclist_release(lst, e->prev);
