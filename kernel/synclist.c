@@ -38,9 +38,9 @@ synclist_push(struct synclist *lst, struct synclist *e)
 void
 synclist_acquire(struct synclist *e)
 {
-  acquire(&e->lock);
+  // acquire(&e->lock);
   e->ref_cnt++;
-  release(&e->lock);
+  // release(&e->lock);
 }
 
 /// Function remove element from list but may be not free memory.
@@ -58,13 +58,13 @@ synclist_remove(struct synclist *lst, struct synclist *e)
   if (e->prev != lst)
     synclist_acquire(e->prev);
 
-  acquire(&e->lock);
+  // acquire(&e->lock);
   e->ref_cnt -= 2;
   
   // freed before ref_count++
   // CHECK(e->ref_cnt > 0);
 
-  release(&e->lock);
+  // release(&e->lock);
 
   if (e->ref_cnt == 0) {
     bd_free(e);
@@ -87,7 +87,7 @@ synclist_release(struct synclist *lst, struct synclist *e)
   if (lst == e)
     return;
 
-  acquire(&e->lock);
+  // acquire(&e->lock);
   e->ref_cnt--;
 
   // CHECK(e->ref_cnt >= 0);
@@ -95,10 +95,10 @@ synclist_release(struct synclist *lst, struct synclist *e)
   if (e->ref_cnt == 0) {
     synclist_release(lst, e->next);
     synclist_release(lst, e->prev);
-    release(&e->lock);
+    // release(&e->lock);
     bd_free(e);
   } else {
-    release(&e->lock);
+    // release(&e->lock);
   }
 }
 
@@ -107,14 +107,10 @@ synclist_release(struct synclist *lst, struct synclist *e)
 struct synclist*
 synclist_next(struct synclist *lst, struct synclist *e)
 { 
-  // empty list root or
-  // list root neighbour,
-  // avoid acquiring the list root
-  if (e->next == lst)
-    return e->next;
+  // list root can not be acquired
+  if (e->next != lst)
+    synclist_acquire(e->next);
 
-  // regular list element
-  synclist_acquire(e->next);
   return e->next;
 }
 

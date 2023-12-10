@@ -1,6 +1,11 @@
 ///
 /// Synchronized double-linked circular list
 ///
+/// With this implementation xv6 spends around 5-10 minutes in average
+/// on usertest "forkforkfork". Such behavior appears because acquiring lock
+/// in xv6 implementation entails desabling interrupts and in fact only the
+/// global lock of list (list root lock) is used.
+///
 
 #ifndef KERNEL_SYNCLIST_H
 #define KERNEL_SYNCLIST_H
@@ -11,7 +16,8 @@ struct synclist {
     struct synclist *next;
     struct synclist *prev;
     uint ref_cnt;
-    struct spinlock lock;
+    struct spinlock lock; // Unused in xv6 locking implementation
+                          // as global list lock is always held.
 };
 
 /// Initialize empty syncronized double-linked circular list
