@@ -68,17 +68,16 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
-  } else {
-    if (scause == 13) {
-      printf("usertrap(): Load page fault: scause %p pid=%d\n", scause, p->pid);
-      printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
-    } else if (scause == 15) {
-      printf("usertrap(): Store/AMO page fault %p pid=%d\n", scause, p->pid);
-      printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
-    }else {
-      printf("usertrap(): unexpected scause %p pid=%d\n", scause, p->pid);
-      printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+  } else if (scause == 13 || // Load page fault
+             scause == 15) { // Store/AMO page fault
+    uint64 va = r_stval();
+    if(uvmcow(p->pagetable, va) != 0) {
+      printf("usertrap(): fail to copy VM on write\n");
+      setkilled(p);
     }
+  } else {
+    printf("usertrap(): unexpected scause %p pid=%d\n", scause, p->pid);
+    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     setkilled(p);
   }
 

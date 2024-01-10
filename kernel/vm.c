@@ -361,15 +361,48 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       panic("uvmcopy: page not present");
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    flags &= (~PTE_W);
+    flags &= ~PTE_W;
+    // *pte &= (~PTE_W);
 
     // let's use old physical page address pa instead of new mem:
     if(mappages(new, i, PGSIZE, (uint64)pa, flags) != 0){
       uvmunmap(new, 0, i / PGSIZE, 1);
+      return -1;
     }
   }
   return 0;
 }
+
+int
+uvmcow(pagetable_t p, uint64 va)
+{
+  // uint64 pageva = PGROUNDDOWN(va);
+  char *mem;
+  uint64 pa;
+  pte_t *pte;
+  uint64 flags;
+
+  // TODO: ref counter of page readers
+  if ((mem = kalloc()) == 0) {
+    printf("uvmcow: new page can't be allocated");
+    return -1;
+  }
+
+  if ((pte = walk(p, va, 0)) == 0)
+    panic("uvcow: pte should exist");
+
+  pa = PGROUNDDOWN(PTE2PA(*pte));
+
+  memmove(mem, (char *)pa, PGSIZE);
+
+  flags = PTE_FLAGS(*pte);
+  flags |= PTE_W;
+
+  *pte = PA2PTE(mem) | flags;
+
+  return 0;
+}
+
 
 // mark a PTE invalid for user access.
 // used by exec for the user stack guard page.
