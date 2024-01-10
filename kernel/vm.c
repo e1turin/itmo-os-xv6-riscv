@@ -305,13 +305,10 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
-
-  new = old;
-  return 0;
-
-  pte_t *pte;
-  uint64 pa, i;
-  uint flags;
+  pte_t *pte, *npte;
+  uint64 i;
+  // uint64 pa, i;
+  // uint flags;
   // char *mem; // unused
 
   for(i = 0; i < sz; i += PGSIZE){
@@ -319,19 +316,23 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
-    pa = PTE2PA(*pte);
-    flags = PTE_FLAGS(*pte);
-        
-    // if((mem = kalloc()) == 0)
-    //   goto err;
-    // memmove(mem, (char*)pa, PGSIZE); // copying physical memory to
-    //                                  // new physical page mem
-
-    // let's use old physical page address pa instead of new mem:
-    if(mappages(new, i, PGSIZE, (uint64)pa, flags) != 0){
-      // kfree(mem); // unused
+    // pa = PTE2PA(*pte);
+    // flags = PTE_FLAGS(*pte);
+    if((npte = walk(new, i, 1)) == 0) 
       goto err;
-    }
+    *npte = *pte;
+
+    // // if((mem = kalloc()) == 0)
+    // //   goto err;
+    // // memmove(mem, (char*)pa, PGSIZE); // copying physical memory to
+    // //                                  // new physical page mem
+    //
+    // // let's use old physical page address pa instead of new mem:
+    // if(mappages(new, i, PGSIZE, (uint64)pa, flags) != 0){
+    //   // kfree(mem); // unused
+    //   goto err;
+    // }
+
   }
   return 0;
 

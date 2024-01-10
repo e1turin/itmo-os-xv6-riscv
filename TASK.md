@@ -62,6 +62,11 @@ usertrap(): unexpected scause 0x000000000000000c pid=2
 panic: uvmunmap: walk
 ```
 
+В третьей реализации, где в `uvmcopy` собственноручно находим нужную PTE в
+новой pagetable и устанавливаем значение из старой таблицы. Результат как в
+первой реализации.
+
+
 Значение кодов можно посмотреть тут:
 - https://dram.page/riscv-trap/ ― удобная шпаргалка по кодам исключений
 - «Table 4.2: Supervisor cause register (scause) values after trap.» в
