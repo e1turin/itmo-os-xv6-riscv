@@ -266,6 +266,51 @@ uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
   return newsz;
 }
 
+static void 
+printtab(int lvl, char *c)
+{
+  printf(c);
+  for (int i = 0; i < lvl; ++i) {
+    printf(" ");
+    printf(c);
+  }
+}
+
+// Recursively prints VM layout for given level lvl (from 0) 
+static void 
+vmprintlvl(pagetable_t const pagetable, uint const lvl)
+{
+  // there are 2^9 = 512 PTEs in a page table.
+  for (int i = 0; i < 512; i++) {
+    pte_t pte = pagetable[i];
+    uint64 pa = PTE2PA(pte);
+
+    if (pte & PTE_V) {
+      printtab(lvl, "..");
+      printf("%d: pte %p pa %p\n", i, pte, pa);
+
+      // PTE points to next level pagetable if RWX == 0.
+      if ((pte & (PTE_R|PTE_W|PTE_X)) == 0) {
+        vmprintlvl((pagetable_t)pa, lvl + 1);
+      } else {
+        // PTE points to valid physical page.
+        // We could check if it is on depth of 3 levels (lvl == 2)
+        // but technically risc-v support superpages (lvl < 3).
+      }
+    } else {
+      // We have not specified VM behaviour for invalid pages when V == 0
+    }
+  }
+}
+
+void
+vmprint(pagetable_t pagetable)
+{
+  printf("page table %p\n", pagetable);
+
+  vmprintlvl(pagetable, 0);
+}
+
 // Recursively free page-table pages.
 // All leaf mappings must already have been removed.
 void
@@ -305,40 +350,25 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
-  pte_t *pte, *npte;
-  uint64 i;
-  // uint64 pa, i;
-  // uint flags;
-  // char *mem; // unused
+  pte_t *pte;
+  uint64 pa, i;
+  uint flags;
 
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
-    // pa = PTE2PA(*pte);
-    // flags = PTE_FLAGS(*pte);
-    if((npte = walk(new, i, 1)) == 0) 
-      goto err;
-    *npte = *pte;
+    pa = PTE2PA(*pte);
+    flags = PTE_FLAGS(*pte);
 
-    // // if((mem = kalloc()) == 0)
-    // //   goto err;
-    // // memmove(mem, (char*)pa, PGSIZE); // copying physical memory to
-    // //                                  // new physical page mem
-    //
-    // // let's use old physical page address pa instead of new mem:
-    // if(mappages(new, i, PGSIZE, (uint64)pa, flags) != 0){
-    //   // kfree(mem); // unused
-    //   goto err;
-    // }
+    // let's use old physical page address pa instead of new mem:
+    if(mappages(new, i, PGSIZE, (uint64)pa, flags) != 0){
+      uvmunmap(new, 0, i / PGSIZE, 1);
+    }
 
   }
   return 0;
-
- err:
-  uvmunmap(new, 0, i / PGSIZE, 1);
-  return -1;
 }
 
 // mark a PTE invalid for user access.
