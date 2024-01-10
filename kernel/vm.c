@@ -361,12 +361,12 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       panic("uvmcopy: page not present");
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
+    flags &= (~PTE_W);
 
     // let's use old physical page address pa instead of new mem:
     if(mappages(new, i, PGSIZE, (uint64)pa, flags) != 0){
       uvmunmap(new, 0, i / PGSIZE, 1);
     }
-
   }
   return 0;
 }
