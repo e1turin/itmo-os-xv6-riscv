@@ -35,6 +35,24 @@ copy-on-write.
 Как вы думаете, что пойдет не так? Попробуйте запустить обновленную версию и
 проверьте ваши предположения.
 
+### Комментарии
+
+В текущей реализации вылетает ошибка на доступ к иструкциям (scause = 0x2)
+```text
+$ ls
+... omit ...
+usertrap(): unexpected scause 0x0000000000000002 pid=2
+            sepc=0x0000000000001000 stval=0x0000000000000000
+usertrap(): unexpected scause 0x000000000000000c pid=1
+            sepc=0x0000000000001000 stval=0x0000000000001000
+panic: init exiting
+```
+
+Значение кодов можно посмотреть тут:
+- https://dram.page/riscv-trap/ ― удобная шпаргалка по кодам исключений
+- «Table 4.2: Supervisor cause register (scause) values after trap.» в
+  спецификации riscv-privileged
+
 ## Часть 2. Профессиональные средства отладки
 
 Напишите функцию `void vmprint(pagetable_t)` в `kernel/vm.c` (kernel/vm.c),
