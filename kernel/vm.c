@@ -5,6 +5,7 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
+#include "cow.h"
 
 /*
  * the kernel's page table.
@@ -376,29 +377,36 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 int
 uvmcow(pagetable_t p, uint64 va)
 {
-  // uint64 pageva = PGROUNDDOWN(va);
   char *mem;
   uint64 pa;
   pte_t *pte;
   uint64 flags;
 
-  // TODO: ref counter of page readers
-  if ((mem = kalloc()) == 0) {
-    printf("uvmcow: new page can't be allocated");
+  if (va >= (uint64)MAXVA)
     return -1;
-  }
 
   if ((pte = walk(p, va, 0)) == 0)
     panic("uvcow: pte should exist");
 
   pa = PGROUNDDOWN(PTE2PA(*pte));
-
-  memmove(mem, (char *)pa, PGSIZE);
-
   flags = PTE_FLAGS(*pte);
   flags |= PTE_W;
 
-  *pte = PA2PTE(mem) | flags;
+  if(pagerefcnt(pa) > 1) {
+    if ((mem = kalloc()) == 0) {
+      printf("uvmcow: new page can't be allocated");
+      return -1;
+    }
+    pageacquire((uint64)mem);
+
+    memmove(mem, (char *)pa, PGSIZE);
+
+    pagerelease(pa);
+    
+    *pte = PA2PTE(mem) | flags;
+  } else {
+    *pte = PA2PTE(pa) | flags;
+  }
 
   return 0;
 }

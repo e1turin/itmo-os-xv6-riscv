@@ -8,6 +8,7 @@
 #include "spinlock.h"
 #include "riscv.h"
 #include "defs.h"
+#include "cow.h"
 
 void freerange(void *pa_start, void *pa_end);
 
@@ -21,11 +22,14 @@ struct run {
 struct {
   struct spinlock lock;
   struct run *freelist;
+
+  struct pagerefctrl refctrl;
 } kmem;
 
 void
 kinit()
 {
+  pagerefinit(&kmem.refctrl);
   initlock(&kmem.lock, "kmem");
   freerange(end, (void*)PHYSTOP);
 }
@@ -78,5 +82,8 @@ kalloc(void)
 
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
+
+  pageacquire(&kmem.refctrl, (uint64)r);
+
   return (void*)r;
 }
