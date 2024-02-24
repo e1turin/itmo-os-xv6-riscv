@@ -10,6 +10,7 @@
 
 - [lab-1](https://github.com/e1turin/itmo-os-xv6-riscv/tree/lab-1) (ping-pong: pipe, fork)
 - [lab-2](https://github.com/e1turin/itmo-os-xv6-riscv/tree/lab-2) (buddy allocator, unlimited process table)
+- [lab-3](https://github.com/e1turin/itmo-os-xv6-riscv/tree/lab-3) (buddy allocator, unlimited process table)
 - ...
 
 
