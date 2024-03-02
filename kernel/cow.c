@@ -2,48 +2,50 @@
 #include "spinlock.h"
 #include "riscv.h"
 #include "defs.h"
+#include "param.h"
 #include "cow.h"
 
-void pagerefinit(struct pagerefctrl *c) {
-  initlock(&c->pagereflock, "pagereflock");
-  for (int *i = c->pprefcnt_begin; i < c->pprefcnt_end; ++i) {
-    *i = 0;
+void pagerefinit(struct pagerefctrl *ctrl, char *begin, uint64 size) {
+  ctrl->counts = begin;
+  ctrl->size = size;
+
+  initlock(&ctrl->lock, "pagereflock");
+  for (uint64 i = 0; i < ctrl->size; ++i) {
+    ctrl->counts[i] = 0;
   }
 }
 
-int pagerefcnt(struct pagerefctrl *c, uint64 pa) {
-  acquire(&c->pagereflock);
-  uint64 pnum = pa >> 12;
-  uint cnt = c->pprefcnt_begin[pnum];
-  release(&c->pagereflock);
+int pagerefcnt(struct pagerefctrl *ctrl, void *pa) {
+  acquire(&ctrl->lock);
+  uint64 pnum = (uint64)pa >> 12; // align by 4KB
+  int cnt = ctrl->counts[pnum];
+  release(&ctrl->lock);
   return cnt;
 }
 
-int pagerelease(struct pagerefctrl *c, uint64 pa) {
-  acquire(&c->pagereflock);
-  uint64 pnum = pa >> 12;
-
-  uint cnt = c->pprefcnt_begin[pnum];
+int pagerelease(struct pagerefctrl *ctrl, void *pa) {
+  acquire(&ctrl->lock);
+  uint64 pnum = (uint64)pa >> 12; // align by 4KB
+  int cnt = ctrl->counts[pnum];
   if (cnt == 0)
-    return -1;
+    panic("pagerelease");
 
-  c->pprefcnt_begin[pnum]--;
+  ctrl->counts[pnum] -= 1;
 
-  release(&c->pagereflock);
+  release(&ctrl->lock);
   return 0;
 }
 
-int pageacquire(struct pagerefctrl *c, uint64 pa) {
-  acquire(&c->pagereflock);
-  uint64 pnum = pa >> 12;
+int pageacquire(struct pagerefctrl *ctrl, void *pa) {
+  acquire(&ctrl->lock);
+  uint64 pnum = (uint64)pa >> 12; // align by 4KB
+  int cnt = ctrl->counts[pnum];
+  if (cnt < 0 && cnt >= NPROC)
+    panic("pageacquire");
 
-  uint cnt = c->pprefcnt_begin[pnum];
-  if (cnt == (uint)-1)
-    return -1;
+  ctrl->counts[pnum] += 1;
 
-  c->pprefcnt_begin[pnum]++;
-
-  release(&c->pagereflock);
+  release(&ctrl->lock);
   return 0;
 }
 

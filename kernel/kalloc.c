@@ -23,15 +23,21 @@ struct {
   struct spinlock lock;
   struct run *freelist;
 
-  struct pagerefctrl refctrl;
+  struct pagerefctrl refs;
 } kmem;
+
+// char* to the first free non-kernel byte
+#define KERNEL_END (&kmem.refs.counts[kmem.refs.size])
 
 void
 kinit()
 {
-  pagerefinit(&kmem.refctrl);
   initlock(&kmem.lock, "kmem");
-  freerange(end, (void*)PHYSTOP);
+  // char is enough to store #NPROC references
+  uint64 size = sizeof(char) * (((char *)PHYSTOP - end) / PGSIZE + 1);
+  char *begin_ref_count = end;
+  pagerefinit(&kmem.refs, begin_ref_count, size);
+  freerange(KERNEL_END, (void *)PHYSTOP);
 }
 
 void
@@ -52,8 +58,11 @@ kfree(void *pa)
 {
   struct run *r;
 
-  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
+  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < KERNEL_END || (uint64)pa >= PHYSTOP)
     panic("kfree");
+
+  if(pagerefcnt(&kmem.refs, pa) != 0)
+    return;
 
   // Fill with junk to catch dangling refs.
   memset(pa, 1, PGSIZE);
@@ -80,10 +89,19 @@ kalloc(void)
     kmem.freelist = r->next;
   release(&kmem.lock);
 
-  if(r)
-    memset((char*)r, 5, PGSIZE); // fill with junk
+  if(r) {
+    if(pagerefcnt(&kmem.refs, r) != 0)
+      panic("kalloc: not null");
 
-  pageacquire(&kmem.refctrl, (uint64)r);
+    kdup(r);
+    memset((char*)r, 5, PGSIZE); // fill with junk
+  }
 
   return (void*)r;
+}
+
+void *kdup(void *p) {
+  if(p) {
+    pageacquire(&kmem.refs, p);
+  }
 }
