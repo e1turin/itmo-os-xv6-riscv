@@ -1,5 +1,14 @@
 #ifndef __ASSEMBLER__
 
+// Read CPU cycles to measure times
+static inline uint64
+r_rdcycle() 
+{
+  unsigned long dst;
+  asm volatile ("csrrs %0, 0xc00, x0" : "=r" (dst));
+  return dst;
+}
+
 // which hart (core) is this?
 static inline uint64
 r_mhartid()

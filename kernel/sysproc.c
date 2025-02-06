@@ -89,3 +89,18 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// test RVV
+extern void foo();
+
+uint64
+sys_rvvtest(void)
+{
+  uint64 start = r_rdcycle();
+  foo();
+  uint64 stop = r_rdcycle();
+
+  uint64 result = stop - start;
+
+  return result;
+}
